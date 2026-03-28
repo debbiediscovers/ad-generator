@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Digital Discovery RSA Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0e0e0f;
+    --surface: #161618;
+    --surface2: #1e1e21;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.14);
+    --text: #e8e8ea;
+    --text-muted: #7a7a82;
+    --text-dim: #4a4a52;
+    --accent: #E83320;
+    --accent-dim: rgba(232,51,32,0.12);
+    --accent-text: #ffffff;
+    --ok: #4ade80;
+    --warn: #fb923c;
+    --over: #f87171;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100%; }
+  body { min-height: 100vh; }
+  .layout { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-top { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+  .logo { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 4px; }
+  .logo-sub { font-size: 12px; color: var(--text-muted); font-weight: 300; }
+  .sidebar-section { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+  .sidebar-section:last-child { border-bottom: none; }
+  .sidebar-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
+  label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; font-weight: 400; }
+  input, textarea, select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 9px 11px; outline: none; transition: border-color 0.15s; resize: vertical; }
+  input:focus, textarea:focus, select:focus { border-color: var(--border-hover); }
+  textarea { min-height: 68px; line-height: 1.5; }
+  select option { background: #1e1e21; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .main { display: flex; flex-direction: column; }
+  .main-header { padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 16px; position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .main-title { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--text-muted); text-transform: uppercase; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 9px 18px; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; background: transparent; color: var(--text-muted); transition: all 0.15s; white-space: nowrap; text-decoration: none; display: inline-block; }
+  .btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .btn-primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .btn-primary:hover { background: #c92b1c; border-color: #c92b1c; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .main-body { flex: 1; padding: 28px 32px; }
+  .ag-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .ag-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .ag-card-header { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  .ag-card-header:hover { background: rgba(255,255,255,0.02); }
+  .ag-name-display { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); letter-spacing: 0.03em; }
+  .ag-header-right { display: flex; align-items: center; gap: 10px; }
+  .ag-card-body { padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ag-card-body.collapsed { display: none; }
+  .remove-link { font-size: 11px; color: var(--text-dim); background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; padding: 2px; }
+  .remove-link:hover { color: var(--over); }
+  .add-ag-btn { width: 100%; border: 1px dashed var(--border); background: transparent; border-radius: var(--radius); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.06em; padding: 13px; cursor: pointer; transition: all 0.15s; }
+  .add-ag-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
+  .progress-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-top: 20px; display: none; }
+  .progress-panel.visible { display: block; }
+  .progress-title { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 14px; }
+  .progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px; }
+  .progress-item { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim); padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+  .progress-item.active { color: var(--text); }
+  .progress-item.done { color: var(--ok); }
+  .progress-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .progress-item.active .progress-dot { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .error-msg { color: var(--over); font-size: 12px; margin-top: 10px; font-family: 'DM Mono', monospace; }
+  .results-container { display: flex; flex-direction: column; gap: 36px; }
+  .result-group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .result-group-name { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text); letter-spacing: 0.03em; }
+  .result-group-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); }
+  .fw-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
+  .fw-tab { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; padding: 8px 14px; border: none; background: none; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.15s; }
+  .fw-tab:hover { color: var(--text-muted); }
+  .fw-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .fw-panel { display: none; }
+  .fw-panel.active { display: block; }
+  .copy-section { margin-bottom: 14px; }
+  .copy-section-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .copy-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 12px; }
+  .copy-table { width: 100%; border-collapse: collapse; }
+  .copy-table tr { border-bottom: 1px solid var(--border); }
+  .copy-table tr:last-child { border-bottom: none; }
+  .copy-table td { padding: 8px 10px; font-size: 13px; vertical-align: middle; }
+  .copy-table td:first-child { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text-dim); width: 26px; padding-left: 0; }
+  .copy-table td:last-child { font-family: 'DM Mono', monospace; font-size: 11px; text-align: right; width: 52px; }
+  .copy-text { color: var(--text); line-height: 1.5; text-transform: lowercase; }
+  .copy-text::first-letter { text-transform: uppercase; }
+  .c-ok { color: var(--ok); }
+  .c-warn { color: var(--warn); }
+  .c-over { color: var(--over); font-weight: 500; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.05em; line-height: 2; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { display: inline-block; width: 13px; height: 13px; border: 1.5px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 7px; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo">Digital Discovery</div>
+      <div class="logo-sub">RSA Generator</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Campaign context</div>
+      <div class="field">
+        <label>Client / brand name</label>
+        <input type="text" id="client" placeholder="e.g. Acme Corporation" />
+      </div>
+      <div class="field">
+        <label>Tone</label>
+        <select id="tone">
+          <option>Professional and trustworthy</option>
+          <option>Friendly and approachable</option>
+          <option>Urgent and action-oriented</option>
+          <option>Authoritative and expert</option>
+          <option>Warm and empathetic</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Landing page URL</label>
+        <input type="text" id="url" placeholder="https://example.com" />
+      </div>
+      <div class="field">
+        <label>Target audience</label>
+        <input type="text" id="audience" placeholder="e.g. Parents in Singapore, aged 25-40" />
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Brand brief</div>
+      <div class="field">
+        <label>USPs / key selling points</label>
+        <textarea id="brief" placeholder="e.g. 20+ years experience, licensed, 24/7 service, 500+ reviews"></textarea>
+      </div>
+      <div class="field">
+        <label>Existing ads to reference (optional)</label>
+        <textarea id="existing" placeholder="Paste any current headlines or descriptions..."></textarea>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div class="main-title">Ad groups</div>
+      <div class="header-actions">
+        <a id="export-btn" style="display:none" class="btn" href="#" onclick="exportCSV(event)">Export CSV</a>
+        <button class="btn btn-primary" onclick="generateAll()" id="gen-btn">Generate all frameworks</button>
+      </div>
+    </div>
+    <div class="main-body">
+      <div class="ag-list" id="ag-list"></div>
+      <button class="add-ag-btn" onclick="addAdGroup()">+ add ad group</button>
+      <div class="progress-panel" id="progress-panel">
+        <div class="progress-title">Generating</div>
+        <div class="progress-grid" id="progress-list"></div>
+        <div id="error-msg" class="error-msg"></div>
+      </div>
+      <div id="results-wrap" style="margin-top:28px">
+        <div class="empty-state" id="empty-state">Fill in the sidebar, add your ad groups<br/>and hit Generate all frameworks</div>
+        <div class="results-container" id="results-area" style="display:none"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const FRAMEWORKS = {
+  aida:   { label: 'AIDA',         prompt: `Structure 15 headlines across AIDA stages:\n- 3-4 Attention: bold, scroll-stopping, curiosity-led\n- 3-4 Interest: what makes this relevant to the searcher\n- 4 Desire: benefits, outcomes, social proof, trust\n- 3-4 Action: clear CTAs (Get a Quote, Book Today, Call Now)\nDescriptions: pair a desire statement with a strong CTA.` },
+  pas:    { label: 'PAS',          prompt: `Structure 15 headlines using PAS:\n- 4-5 Problem: name the pain the searcher has right now\n- 4-5 Agitate: urgency, consequences, time sensitivity\n- 5 Solution: position client as the clear fix with CTA\nDescriptions: open with the problem, close with solution and action.` },
+  bab:    { label: 'BAB',          prompt: `Structure 15 headlines using Before-After-Bridge:\n- 4-5 Before: the current pain the audience is stuck in\n- 4-5 After: the desirable outcome they want\n- 4-5 Bridge: how this client gets them there, with CTA\nDescriptions: contrast before and after, bridge to the solution.` },
+  fourps: { label: '4Ps',          prompt: `Structure 15 headlines using the 4Ps:\n- 3-4 Promise: core benefit or result the client delivers\n- 3-4 Picture: help reader visualise the outcome\n- 4 Proof: years in business, reviews, certifications, numbers\n- 3-4 Push: urgency or incentive to act now\nDescriptions: vivid promise plus proof plus a push to act.` },
+  usp:    { label: 'USP-led',      prompt: `Focus on unique selling propositions:\n- Lead with strongest differentiators in first 5 headlines\n- Mix benefit-led, feature-led, and outcome-led headlines\n- At least 2 headlines with specific numbers or proof\n- 3-4 strong CTA headlines\n- Every headline must contain a concrete point of difference\nDescriptions: strongest USP first, direct CTA to close.` },
+  social: { label: 'Social proof', prompt: `Lead with social proof throughout:\n- 4-5 headlines using numbers, ratings, review counts, years in business\n- 3-4 headlines with outcome framing (Trusted by 500+ families)\n- 3-4 authority headlines (awards, certifications, credentials)\n- 3-4 CTA headlines referencing the trust built\nDescriptions: strong proof point first, low-friction CTA to close.` }
+};
+
+const FW_KEYS = Object.keys(FRAMEWORKS);
+let agCount = 0;
+let allResults = [];
+
+function toSentenceCase(str) {
+  if (!str) return str;
+  str = str.trim();
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function addAdGroup(name, kw) {
+  name = name || '';
+  kw = kw || '';
+  agCount++;
+  const id = agCount;
+  const list = document.getElementById('ag-list');
+  const div = document.createElement('div');
+  div.className = 'ag-card';
+  div.id = 'ag-' + id;
+  div.innerHTML =
+    '<div class="ag-card-header" onclick="toggleAg(' + id + ')">' +
+      '<span class="ag-name-display" id="ag-display-' + id + '">' + (name || 'Untitled ad group') + '</span>' +
+      '<div class="ag-header-right">' +
+        '<button class="remove-link" onclick="event.stopPropagation();removeAg(' + id + ')">remove</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="ag-card-body" id="ag-body-' + id + '">' +
+      '<div class="field">' +
+        '<label>Ad group name / theme</label>' +
+        '<input type="text" id="ag-name-' + id + '" value="' + name + '" placeholder="e.g. Emergency electrician" oninput="document.getElementById(\'ag-display-' + id + '\').textContent=this.value||\'Untitled ad group\'" />' +
+      '</div>' +
+      '<div class="field">' +
+        '<label>Keywords (comma-separated)</label>' +
+        '<input type="text" id="ag-kw-' + id + '" value="' + kw + '" placeholder="emergency electrician, 24hr..." />' +
+      '</div>' +
+    '</div>';
+  list.appendChild(div);
+}
+
+function toggleAg(id) {
+  document.getElementById('ag-body-' + id).classList.toggle('collapsed');
+}
+
+function removeAg(id) {
+  var el = document.getElementById('ag-' + id);
+  if (el) el.remove();
+}
+
+function charCls(len, max) {
+  if (len > max) return 'c-over';
+  if (len > max * 0.87) return 'c-warn';
+  return 'c-ok';
+}
+
+function charLabel(len, max) {
+  return '<span class="' + charCls(len, max) + '">' + len + '/' + max + '</span>';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function generateForFramework(ctx, agName, kw, fwKey) {
+  var fw = FRAMEWORKS[fwKey];
+  var system = 'You are an expert Google Ads copywriter. Generate RSA copy with STRICT character limits:\n' +
+    '- Exactly 15 headlines, each MUST be 30 characters or fewer. Count every character including spaces.\n' +
+    '- Exactly 4 descriptions, each MUST be 90 characters or fewer.\n\n' +
+    'Rules:\n' +
+    '- Sentence case ONLY: first word capitalised, rest lowercase (except proper nouns)\n' +
+    '- No punctuation at end of headlines\n' +
+    '- No repeated phrases across headlines\n' +
+    '- Each asset independently meaningful without context\n' +
+    '- Integrate keywords naturally\n' +
+    '- Specific and concrete — no filler\n' +
+    '- Respond ONLY with valid JSON, nothing else:\n' +
+    '{"headlines":["h1","h2","h3","h4","h5","h6","h7","h8","h9","h10","h11","h12","h13","h14","h15"],"descriptions":["d1","d2","d3","d4"]}';
+
+  var user = 'Client: ' + ctx.client + '\n' +
+    'Target audience: ' + ctx.audience + '\n' +
+    'Ad group theme: ' + agName + '\n' +
+    'Keywords: ' + kw + '\n' +
+    'Tone: ' + ctx.tone + '\n' +
+    'Landing page: ' + ctx.url + '\n' +
+    'USPs: ' + ctx.brief +
+    (ctx.existing ? '\nExisting ads to reference: ' + ctx.existing : '') + '\n\n' +
+    'Framework - ' + fw.label + ':\n' + fw.prompt + '\n\n' +
+    'CRITICAL: Every headline must be 30 chars or fewer. Every description 90 chars or fewer. JSON only.';
+
+  // Call Netlify function proxy instead of Anthropic directly
+  var resp = await fetch('/.netlify/functions/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1200,
+      system: system,
+      messages: [{ role: 'user', content: user }]
+    })
+  });
+
+  if (!resp.ok) throw new Error('API error ' + resp.status);
+  var data = await resp.json();
+  var raw = '';
+  for (var i = 0; i < data.content.length; i++) {
+    if (data.content[i].type === 'text') { raw = data.content[i].text; break; }
+  }
+  var clean = raw.replace(/```json|```/g, '').trim();
+  var parsed = JSON.parse(clean);
+
+  var headlines = (parsed.headlines || []).map(function(h) { return toSentenceCase(h); });
+  var descriptions = (parsed.descriptions || []).map(function(d) { return toSentenceCase(d); });
+
+  return { headlines: headlines, descriptions: descriptions };
+}
+
+async function generateAll() {
+  var client = document.getElementById('client').value.trim();
+  var tone = document.getElementById('tone').value;
+  var url = document.getElementById('url').value.trim();
+  var audience = document.getElementById('audience').value.trim();
+  var brief = document.getElementById('brief').value.trim();
+  var existing = document.getElementById('existing').value.trim();
+
+  var groups = [];
+  var nameEls = document.querySelectorAll('[id^="ag-name-"]:not([id*="display"])');
+  for (var ni = 0; ni < nameEls.length; ni++) {
+    var el = nameEls[ni];
+    var id = el.id.split('-').pop();
+    var n = el.value.trim();
+    var k = (document.getElementById('ag-kw-' + id) || {}).value || '';
+    if (n) groups.push({ name: n, kw: k.trim() });
+  }
+
+  if (!client) { alert('Please enter a client name.'); return; }
+  if (!groups.length) { alert('Please add at least one ad group with a name.'); return; }
+
+  var btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Generating...';
+
+  var panel = document.getElementById('progress-panel');
+  panel.classList.add('visible');
+  document.getElementById('error-msg').textContent = '';
+
+  var progHtml = '';
+  for (var gi = 0; gi < groups.length; gi++) {
+    for (var fi = 0; fi < FW_KEYS.length; fi++) {
+      var idx = gi * FW_KEYS.length + fi;
+      progHtml += '<div class="progress-item" id="prog-' + idx + '"><span class="progress-dot"></span><span>' + escHtml(groups[gi].name) + ' - ' + FRAMEWORKS[FW_KEYS[fi]].label + '</span></div>';
+    }
+  }
+  document.getElementById('progress-list').innerHTML = progHtml;
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('results-area').style.display = 'none';
+  allResults = [];
+
+  var ctx = { client: client, tone: tone, url: url, audience: audience, brief: brief, existing: existing };
+
+  try {
+    for (var gi2 = 0; gi2 < groups.length; gi2++) {
+      var g = groups[gi2];
+      var fwResults = {};
+      for (var fi2 = 0; fi2 < FW_KEYS.length; fi2++) {
+        var fk = FW_KEYS[fi2];
+        var idx2 = gi2 * FW_KEYS.length + fi2;
+        var progEl = document.getElementById('prog-' + idx2);
+        progEl.className = 'progress-item active';
+        progEl.querySelector('span:last-child').textContent = g.name + ' - ' + FRAMEWORKS[fk].label + '...';
+        try {
+          fwResults[fk] = await generateForFramework(ctx, g.name, g.kw, fk);
+          progEl.className = 'progress-item done';
+          progEl.querySelector('span:last-child').textContent = g.name + ' - ' + FRAMEWORKS[fk].label;
+        } catch(err) {
+          fwResults[fk] = { headlines: [], descriptions: [], error: err.message };
+          progEl.className = 'progress-item';
+          progEl.querySelector('span:last-child').textContent = g.name + ' - ' + FRAMEWORKS[fk].label + ' (failed)';
+        }
+      }
+      allResults.push({ agName: g.name, frameworks: fwResults });
+    }
+    renderResults();
+    document.getElementById('export-btn').style.display = '';
+  } catch(e) {
+    document.getElementById('error-msg').textContent = 'Error: ' + e.message;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Generate all frameworks';
+}
+
+function switchFwTab(agIdx, fwKey) {
+  for (var i = 0; i < FW_KEYS.length; i++) {
+    var fk = FW_KEYS[i];
+    var tab = document.getElementById('tab-' + agIdx + '-' + fk);
+    var pnl = document.getElementById('panel-' + agIdx + '-' + fk);
+    if (tab) tab.classList.remove('active');
+    if (pnl) pnl.classList.remove('active');
+  }
+  var at = document.getElementById('tab-' + agIdx + '-' + fwKey);
+  var ap = document.getElementById('panel-' + agIdx + '-' + fwKey);
+  if (at) at.classList.add('active');
+  if (ap) ap.classList.add('active');
+}
+
+function renderResults() {
+  var area = document.getElementById('results-area');
+  var html = '';
+  for (var ai = 0; ai < allResults.length; ai++) {
+    var res = allResults[ai];
+    html += '<div class="result-group">' +
+      '<div class="result-group-header">' +
+        '<span class="result-group-name">' + escHtml(res.agName) + '</span>' +
+        '<span class="result-group-meta">' + FW_KEYS.length + ' frameworks</span>' +
+      '</div>' +
+      '<div class="fw-tabs">';
+    for (var fi = 0; fi < FW_KEYS.length; fi++) {
+      var fk = FW_KEYS[fi];
+      var active = fi === 0 ? ' active' : '';
+      html += '<button class="fw-tab' + active + '" id="tab-' + ai + '-' + fk + '" onclick="switchFwTab(' + ai + ',\'' + fk + '\')">' + FRAMEWORKS[fk].label + '</button>';
+    }
+    html += '</div>';
+    for (var fi2 = 0; fi2 < FW_KEYS.length; fi2++) {
+      var fk2 = FW_KEYS[fi2];
+      var active2 = fi2 === 0 ? ' active' : '';
+      var fw = res.frameworks[fk2];
+      html += '<div class="fw-panel' + active2 + '" id="panel-' + ai + '-' + fk2 + '">';
+      if (fw.error) {
+        html += '<div style="color:var(--over);font-size:12px;font-family:\'DM Mono\',monospace;padding:12px 0">Generation failed: ' + escHtml(fw.error) + '</div>';
+      } else {
+        html += '<div class="copy-section"><div class="copy-section-label">Headlines — ' + fw.headlines.length + ' of 15</div><div class="copy-wrap"><table class="copy-table">';
+        for (var hi = 0; hi < fw.headlines.length; hi++) {
+          var h = fw.headlines[hi];
+          html += '<tr><td>' + (hi+1) + '</td><td class="copy-text">' + escHtml(h) + '</td><td>' + charLabel(h.length, 30) + '</td></tr>';
+        }
+        html += '</table></div></div>';
+        html += '<div class="copy-section"><div class="copy-section-label">Descriptions — ' + fw.descriptions.length + ' of 4</div><div class="copy-wrap"><table class="copy-table">';
+        for (var di = 0; di < fw.descriptions.length; di++) {
+          var d = fw.descriptions[di];
+          html += '<tr><td>' + (di+1) + '</td><td class="copy-text">' + escHtml(d) + '</td><td>' + charLabel(d.length, 90) + '</td></tr>';
+        }
+        html += '</table></div></div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  area.innerHTML = html;
+  area.style.display = '';
+}
+
+function exportCSV(e) {
+  e.preventDefault();
+  if (!allResults.length) return;
+  var rows = [['Ad Group','Framework','Type','#','Copy','Char Count','Limit','Status']];
+  for (var ai = 0; ai < allResults.length; ai++) {
+    var res = allResults[ai];
+    for (var fi = 0; fi < FW_KEYS.length; fi++) {
+      var fk = FW_KEYS[fi];
+      var fw = res.frameworks[fk];
+      if (!fw || fw.error) continue;
+      var fwLabel = FRAMEWORKS[fk].label;
+      for (var hi = 0; hi < fw.headlines.length; hi++) {
+        var h = fw.headlines[hi];
+        var hs = h.length > 30 ? 'OVER LIMIT' : h.length > 26 ? 'Near limit' : 'OK';
+        rows.push([res.agName, fwLabel, 'Headline', hi+1, h, h.length, 30, hs]);
+      }
+      for (var di = 0; di < fw.descriptions.length; di++) {
+        var d = fw.descriptions[di];
+        var ds = d.length > 90 ? 'OVER LIMIT' : d.length > 78 ? 'Near limit' : 'OK';
+        rows.push([res.agName, fwLabel, 'Description', di+1, d, d.length, 90, ds]);
+      }
+    }
+  }
+  var BOM = '\uFEFF';
+  var csv = BOM + rows.map(function(r) {
+    return r.map(function(c) { return '"' + String(c).replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+  try {
+    var bytes = new TextEncoder().encode(csv);
+    var binary = '';
+    var chunk = 8192;
+    for (var i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    var b64 = btoa(binary);
+    var a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8;base64,' + b64;
+    a.download = 'rsa_copy.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch(err) {
+    var w = window.open('', '_blank');
+    if (w) {
+      w.document.write('<pre style="font:13px monospace;white-space:pre-wrap">' + csv.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre>');
+      w.document.title = 'rsa_copy — copy into a .csv file';
+    } else {
+      alert('Download blocked. Allow popups for this page and try again.');
+    }
+  }
+}
+
+addAdGroup();
+</script>
+</body>
+</html>
